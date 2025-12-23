@@ -737,20 +737,27 @@
         }
 
         function QRModal({ url, onClose }) {
-            const canvasRef = useRef(null);
+            const [qrDataURL, setQrDataURL] = useState('');
 
             useEffect(() => {
-                if (canvasRef.current && window.QRCode) {
-                    window.QRCode.toCanvas(canvasRef.current, url, {
+                // Use the global QRCode from the CDN
+                if (typeof QRCode !== 'undefined') {
+                    QRCode.toDataURL(url, {
                         width: 300,
                         margin: 2,
                         color: {
                             dark: '#1a1a1a',
                             light: '#ffffff'
                         }
-                    }, (error) => {
-                        if (error) console.error('QR code generation error:', error);
+                    }, (error, dataURL) => {
+                        if (error) {
+                            console.error('QR code generation error:', error);
+                        } else {
+                            setQrDataURL(dataURL);
+                        }
                     });
+                } else {
+                    console.error('QRCode library not loaded');
                 }
             }, [url]);
 
@@ -762,7 +769,11 @@
                             Scan this QR code with your iPad camera or QR scanner app. It will open this page with all your settings, locations, and completed steps loaded.
                         </div>
                         <div className="qr-canvas">
-                            <canvas ref={canvasRef}></canvas>
+                            {qrDataURL ? (
+                                <img src={qrDataURL} alt="QR Code" style={{ display: 'block', margin: '0 auto' }} />
+                            ) : (
+                                <div style={{ padding: '40px', color: '#888' }}>Generating QR code...</div>
+                            )}
                         </div>
                         <div className="modal-buttons">
                             <button
