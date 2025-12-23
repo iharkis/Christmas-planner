@@ -546,18 +546,9 @@
             };
 
             const handleSaveSettings = (tempNotes, tempLocations) => {
-                console.log('Saving settings:', { notes: tempNotes, locations: tempLocations });
-
-                // Debug: Show what we're saving
-                const locationCount = Object.keys(tempLocations).filter(k => tempLocations[k]).length;
-                const noteCount = Object.keys(tempNotes).filter(k => tempNotes[k]).length;
-
                 setNotes(tempNotes);
                 setLocations(tempLocations);
                 setShowSettings(false);
-
-                // Show confirmation
-                alert(`Settings saved!\nLocations: ${locationCount}\nNotes: ${noteCount}`);
             };
 
             const highlightTimes = (text) => {
@@ -591,9 +582,6 @@
                             <div className="current-time">{formatTime(currentTime)}</div>
                             <div className="progress">
                                 {completedSteps.length} of {STEPS.length} completed
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#888' }}>
-                                L:{Object.keys(locations).filter(k => locations[k]).length} N:{Object.keys(notes).filter(k => notes[k]).length}
                             </div>
                             <button className="sync-btn" onClick={() => setShowQR(true)}>
                                 Sync QR
