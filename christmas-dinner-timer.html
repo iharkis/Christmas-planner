@@ -238,6 +238,73 @@
             color: #f59e0b;
         }
 
+        .active-timer {
+            background: #2a2a2a;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #444;
+        }
+
+        .active-timer.warning {
+            border-color: #f59e0b;
+        }
+
+        .active-timer.expired {
+            border-color: #ef4444;
+            background: #3a1a1a;
+        }
+
+        .timer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .timer-description {
+            font-size: 14px;
+            color: #fff;
+            flex: 1;
+        }
+
+        .timer-countdown {
+            font-size: 24px;
+            font-weight: 700;
+            color: #f59e0b;
+        }
+
+        .timer-countdown.warning {
+            color: #fbbf24;
+        }
+
+        .timer-countdown.expired {
+            color: #ef4444;
+        }
+
+        .timer-stop-btn {
+            background: #444;
+            border: none;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .timer-stop-btn:hover {
+            background: #555;
+        }
+
+        .no-timers {
+            color: #666;
+            font-size: 14px;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -531,6 +598,18 @@
             .qr-instructions {
                 font-size: 13px;
             }
+
+            .active-timer {
+                padding: 12px;
+            }
+
+            .timer-countdown {
+                font-size: 20px;
+            }
+
+            .timer-description {
+                font-size: 13px;
+            }
         }
 
         /* iPhone SE and smaller */
@@ -610,6 +689,10 @@
                 const saved = localStorage.getItem('christmasTimerLocations');
                 return saved ? JSON.parse(saved) : {};
             });
+            const [activeTimers, setActiveTimers] = useState(() => {
+                const saved = localStorage.getItem('christmasTimerActive');
+                return saved ? JSON.parse(saved) : {};
+            });
             const [countdown, setCountdown] = useState(null);
             const currentStepRef = useRef(null);
 
@@ -651,6 +734,10 @@
             }, [completedSteps]);
 
             useEffect(() => {
+                localStorage.setItem('christmasTimerActive', JSON.stringify(activeTimers));
+            }, [activeTimers]);
+
+            useEffect(() => {
                 if (currentStepRef.current) {
                     currentStepRef.current.scrollIntoView({
                         behavior: 'smooth',
@@ -689,12 +776,56 @@
                 return STEPS.findIndex((_, idx) => !completedSteps.includes(idx));
             };
 
+            const parseDuration = (description) => {
+                // Parse durations like "25 mins", "3 hours", "3-4 mins"
+                const patterns = [
+                    { regex: /(\d+)\s*hours?/i, multiplier: 60 * 60 * 1000 },
+                    { regex: /(\d+)\s*mins?/i, multiplier: 60 * 1000 },
+                    { regex: /(\d+)-(\d+)\s*mins?/i, multiplier: 60 * 1000, useMax: true }
+                ];
+
+                for (const { regex, multiplier, useMax } of patterns) {
+                    const match = description.match(regex);
+                    if (match) {
+                        const duration = useMax ? parseInt(match[2]) : parseInt(match[1]);
+                        return duration * multiplier;
+                    }
+                }
+                return null;
+            };
+
             const handleStepClick = (index) => {
                 if (completedSteps.includes(index)) {
+                    // Uncompleting a step - remove it and its timer
                     setCompletedSteps(completedSteps.filter(i => i !== index));
+                    const newTimers = { ...activeTimers };
+                    delete newTimers[index];
+                    setActiveTimers(newTimers);
                 } else {
+                    // Completing a step - add it and start timer if applicable
                     setCompletedSteps([...completedSteps, index]);
+
+                    const duration = parseDuration(STEPS[index].description);
+                    if (duration) {
+                        const startTime = Date.now();
+                        setActiveTimers({
+                            ...activeTimers,
+                            [index]: {
+                                stepIndex: index,
+                                description: STEPS[index].description,
+                                duration: duration,
+                                startTime: startTime,
+                                endTime: startTime + duration
+                            }
+                        });
+                    }
                 }
+            };
+
+            const stopTimer = (index) => {
+                const newTimers = { ...activeTimers };
+                delete newTimers[index];
+                setActiveTimers(newTimers);
             };
 
             const getStepClass = (index) => {
@@ -790,7 +921,56 @@
                         </div>
 
                         <div className="right-column">
-                            <div className="section-title">Timeline</div>
+                            <div className="section-title">Active Timers</div>
+                            {Object.keys(activeTimers).length === 0 ? (
+                                <div className="no-timers">No active timers</div>
+                            ) : (
+                                <div>
+                                    {Object.values(activeTimers).map((timer) => {
+                                        const remaining = timer.endTime - currentTime.getTime();
+                                        const isExpired = remaining <= 0;
+                                        const isWarning = remaining > 0 && remaining < 60000; // < 1 minute
+
+                                        const formatRemaining = (ms) => {
+                                            if (ms <= 0) return 'DONE!';
+                                            const totalSeconds = Math.ceil(ms / 1000);
+                                            const hours = Math.floor(totalSeconds / 3600);
+                                            const minutes = Math.floor((totalSeconds % 3600) / 60);
+                                            const seconds = totalSeconds % 60;
+
+                                            if (hours > 0) {
+                                                return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                                            } else {
+                                                return `${minutes}:${String(seconds).padStart(2, '0')}`;
+                                            }
+                                        };
+
+                                        return (
+                                            <div
+                                                key={timer.stepIndex}
+                                                className={`active-timer ${isExpired ? 'expired' : isWarning ? 'warning' : ''}`}
+                                            >
+                                                <div className="timer-header">
+                                                    <div className="timer-description">
+                                                        {STEPS[timer.stepIndex].time} - {timer.description}
+                                                    </div>
+                                                    <button
+                                                        className="timer-stop-btn"
+                                                        onClick={() => stopTimer(timer.stepIndex)}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                                <div className={`timer-countdown ${isExpired ? 'expired' : isWarning ? 'warning' : ''}`}>
+                                                    {formatRemaining(remaining)}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="section-title" style={{ marginTop: '30px' }}>Timeline</div>
                             <ul className="timeline-list">
                                 {STEPS.map((step, index) => (
                                     <li
