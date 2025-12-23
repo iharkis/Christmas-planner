@@ -747,6 +747,11 @@
                 });
             };
 
+            // Debug: Show URL being encoded
+            const showDebugURL = () => {
+                alert(`QR URL: ${url}\n\nLength: ${url.length} chars\n\nHash included: ${url.includes('#') ? 'YES' : 'NO'}`);
+            };
+
             return (
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal qr-modal" onClick={(e) => e.stopPropagation()}>
@@ -765,6 +770,9 @@
                                     e.target.parentNode.innerHTML = '<div style="padding: 40px; color: #888;">Failed to generate QR code</div>';
                                 }}
                             />
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#666', marginTop: '10px', cursor: 'pointer' }} onClick={showDebugURL}>
+                            Tap to see QR URL info
                         </div>
                         <div className="modal-buttons">
                             <button
