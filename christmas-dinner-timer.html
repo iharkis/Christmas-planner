@@ -180,6 +180,19 @@
             font-weight: 600;
         }
 
+        .location-badge {
+            display: inline-block;
+            margin-top: 8px;
+            margin-left: 8px;
+            padding: 4px 10px;
+            background: #333;
+            color: #f59e0b;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid #444;
+        }
+
         .timeline-list {
             list-style: none;
         }
@@ -279,6 +292,32 @@
             min-height: 60px;
         }
 
+        .modal select {
+            width: 100%;
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .modal select option {
+            background: #333;
+            color: #fff;
+        }
+
+        .modal-field-label {
+            display: block;
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 4px;
+            margin-top: 8px;
+        }
+
         .modal-buttons {
             display: flex;
             gap: 12px;
@@ -329,10 +368,13 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        const COOKING_LOCATIONS = ['Main oven', 'Top oven', 'Air fryer', 'Slow cooker', 'Hob', 'Microwave', 'Kamado'];
+
         const STEPS = [
             { time: '07:30', description: 'Sous vide to temp (65°C)' },
             { time: '08:00', description: 'Turkey into sous vide' },
             { time: '11:00', description: 'Light kamado (target 250°C)' },
+            { time: '11:15', description: 'Christmas pudding in steamer (3 hours)' },
             { time: '11:20', description: 'Small oven on (preheat with Yorkshire tray + beef dripping)' },
             { time: '11:30', description: 'Start gravy (chicken + mire poix in stock)' },
             { time: '11:45', description: 'Main oven on 200°C & heat oil for parsnips' },
@@ -346,6 +388,7 @@
             { time: '12:40', description: 'Yorkshire puddings in (25 mins at 220°C)' },
             { time: '12:45', description: 'Pigs in blankets to air fryer, sprouts in frying pan' },
             { time: '12:50', description: 'Turkey off kamado (should be nicely crisped)' },
+            { time: '12:55', description: 'Steam tenderstem broccoli' },
             { time: '13:00', description: 'Serve buffet style' },
             { time: '13:05', description: 'Yorkshires out' }
         ];
@@ -355,6 +398,7 @@
             const [completedSteps, setCompletedSteps] = useState([]);
             const [showSettings, setShowSettings] = useState(false);
             const [notes, setNotes] = useState({});
+            const [locations, setLocations] = useState({});
             const [countdown, setCountdown] = useState(null);
             const currentStepRef = useRef(null);
 
@@ -426,13 +470,14 @@
                 });
             };
 
-            const handleSaveNotes = (tempNotes) => {
+            const handleSaveSettings = (tempNotes, tempLocations) => {
                 setNotes(tempNotes);
+                setLocations(tempLocations);
                 setShowSettings(false);
             };
 
             const highlightTimes = (text) => {
-                const timePatterns = /(\d+\s*°C|\d+\s*mins?|\d+\s*seconds?|25\s*mins|target\s+\d+°C)/gi;
+                const timePatterns = /(\d+\s*°C|\d+\s*mins?|\d+\s*seconds?|\d+\s*hours?|25\s*mins|target\s+\d+°C)/gi;
                 const parts = text.split(timePatterns);
 
                 return parts.map((part, i) => {
@@ -473,6 +518,9 @@
                                     </div>
                                     <div className="step-content">
                                         {highlightTimes(step.description)}
+                                        {locations[index] && (
+                                            <span className="location-badge">📍 {locations[index]}</span>
+                                        )}
                                     </div>
                                     {notes[index] && (
                                         <div className="step-note">{notes[index]}</div>
@@ -497,7 +545,14 @@
                                         } ${index === getCurrentStepIndex() ? 'active' : ''}`}
                                     >
                                         <div className="timeline-time">{step.time}</div>
-                                        <div className="timeline-desc">{step.description}</div>
+                                        <div className="timeline-desc">
+                                            {step.description}
+                                            {locations[index] && (
+                                                <div style={{ marginTop: '4px', fontSize: '12px', color: '#f59e0b' }}>
+                                                    📍 {locations[index]}
+                                                </div>
+                                            )}
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
@@ -508,16 +563,19 @@
                         <SettingsModal
                             steps={STEPS}
                             currentNotes={notes}
+                            currentLocations={locations}
+                            cookingLocations={COOKING_LOCATIONS}
                             onClose={() => setShowSettings(false)}
-                            onSave={handleSaveNotes}
+                            onSave={handleSaveSettings}
                         />
                     )}
                 </>
             );
         }
 
-        function SettingsModal({ steps, currentNotes, onClose, onSave }) {
+        function SettingsModal({ steps, currentNotes, currentLocations, cookingLocations, onClose, onSave }) {
             const [tempNotes, setTempNotes] = useState({ ...currentNotes });
+            const [tempLocations, setTempLocations] = useState({ ...currentLocations });
 
             const handleNoteChange = (index, value) => {
                 setTempNotes({
@@ -526,15 +584,35 @@
                 });
             };
 
+            const handleLocationChange = (index, value) => {
+                setTempLocations({
+                    ...tempLocations,
+                    [index]: value
+                });
+            };
+
             return (
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h2>Step Notes</h2>
+                        <h2>Step Settings</h2>
                         {steps.map((step, index) => (
                             <div key={index} className="modal-step">
                                 <div className="modal-step-title">
                                     {step.time} - {step.description}
                                 </div>
+                                <label className="modal-field-label">Cooking Location</label>
+                                <select
+                                    value={tempLocations[index] || ''}
+                                    onChange={(e) => handleLocationChange(index, e.target.value)}
+                                >
+                                    <option value="">Select location...</option>
+                                    {cookingLocations.map((location) => (
+                                        <option key={location} value={location}>
+                                            {location}
+                                        </option>
+                                    ))}
+                                </select>
+                                <label className="modal-field-label">Notes</label>
                                 <textarea
                                     value={tempNotes[index] || ''}
                                     onChange={(e) => handleNoteChange(index, e.target.value)}
@@ -551,9 +629,9 @@
                             </button>
                             <button
                                 className="modal-btn modal-btn-primary"
-                                onClick={() => onSave(tempNotes)}
+                                onClick={() => onSave(tempNotes, tempLocations)}
                             >
-                                Save Notes
+                                Save Settings
                             </button>
                         </div>
                     </div>
