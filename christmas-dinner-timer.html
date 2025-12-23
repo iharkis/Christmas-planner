@@ -652,19 +652,19 @@
 
         const STEPS = [
             { time: '07:30', description: 'Sous vide to temp (65°C)' },
-            { time: '08:00', description: 'Turkey into sous vide' },
+            { time: '08:00', description: 'Turkey into sous vide (4 hours 10 mins)' },
             { time: '11:00', description: 'Light kamado (target 250°C)' },
             { time: '11:15', description: 'Christmas pudding in steamer (3 hours)' },
             { time: '11:30', description: 'Start gravy (chicken + mire poix in stock)' },
             { time: '11:45', description: 'Main oven on 200°C & heat oil for parsnips' },
-            { time: '12:00', description: 'Roast potatoes & parsnips in oven (parsnips tossed in oil first)' },
-            { time: '12:05', description: 'Red cabbage in slow cooker' },
-            { time: '12:10', description: 'Turkey out of sous vide, onto kamado (250°C to crisp)' },
+            { time: '12:00', description: 'Roast potatoes & parsnips in oven (55 mins - parsnips tossed in oil first)' },
+            { time: '12:05', description: 'Red cabbage in slow cooker (55 mins)' },
+            { time: '12:10', description: 'Turkey out of sous vide, onto kamado (40 mins at 250°C to crisp)' },
             { time: '12:15', description: 'Chop sprouts (cut in half)' },
-            { time: '12:20', description: 'Top oven on (preheat with Yorkshire tray + beef dripping) & stuffing in main oven & peel/chop potatoes for mashing' },
+            { time: '12:20', description: 'Top oven on (preheat with Yorkshire tray + beef dripping) & stuffing in main oven (30 mins) & peel/chop potatoes for mashing' },
             { time: '12:30', description: 'Potatoes for mash on to boil (25 mins) & strain gravy, add roux + reduction (let simmer after incorporating)' },
             { time: '12:40', description: 'Yorkshire puddings in top oven (25 mins at 220°C)' },
-            { time: '12:45', description: 'Pigs in blankets to air fryer (15 mins), sprouts in frying pan' },
+            { time: '12:45', description: 'Pigs in blankets to air fryer (15 mins), sprouts in frying pan (13 mins)' },
             { time: '12:50', description: 'Turkey off kamado (should be nicely crisped) & stuffing out of main oven' },
             { time: '12:55', description: 'Drain and mash potatoes (with butter and cream), steam tenderstem broccoli (3-4 mins) & roast potatoes/parsnips out' },
             { time: '12:58', description: 'Broccoli off & sprouts off hob' },
@@ -777,21 +777,36 @@
             };
 
             const parseDuration = (description) => {
-                // Parse durations like "25 mins", "3 hours", "3-4 mins"
-                const patterns = [
-                    { regex: /(\d+)\s*hours?/i, multiplier: 60 * 60 * 1000 },
-                    { regex: /(\d+)\s*mins?/i, multiplier: 60 * 1000 },
-                    { regex: /(\d+)-(\d+)\s*mins?/i, multiplier: 60 * 1000, useMax: true }
-                ];
+                // Parse durations like "25 mins", "3 hours", "3-4 mins", "4 hours 10 mins"
+                let totalMs = 0;
 
-                for (const { regex, multiplier, useMax } of patterns) {
-                    const match = description.match(regex);
-                    if (match) {
-                        const duration = useMax ? parseInt(match[2]) : parseInt(match[1]);
-                        return duration * multiplier;
-                    }
+                // Check for "X hours Y mins" format first
+                const hoursMinsCombined = description.match(/(\d+)\s*hours?\s+(\d+)\s*mins?/i);
+                if (hoursMinsCombined) {
+                    const hours = parseInt(hoursMinsCombined[1]);
+                    const mins = parseInt(hoursMinsCombined[2]);
+                    return (hours * 60 * 60 * 1000) + (mins * 60 * 1000);
                 }
-                return null;
+
+                // Check for range format "X-Y mins" (use max)
+                const rangeMatch = description.match(/(\d+)-(\d+)\s*mins?/i);
+                if (rangeMatch) {
+                    return parseInt(rangeMatch[2]) * 60 * 1000;
+                }
+
+                // Check for hours
+                const hoursMatch = description.match(/(\d+)\s*hours?/i);
+                if (hoursMatch) {
+                    totalMs += parseInt(hoursMatch[1]) * 60 * 60 * 1000;
+                }
+
+                // Check for minutes
+                const minsMatch = description.match(/(\d+)\s*mins?/i);
+                if (minsMatch) {
+                    totalMs += parseInt(minsMatch[1]) * 60 * 1000;
+                }
+
+                return totalMs > 0 ? totalMs : null;
             };
 
             const handleStepClick = (index) => {
