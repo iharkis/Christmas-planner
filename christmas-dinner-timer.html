@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christmas Dinner Timeline</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        #root {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            padding: 20px 30px;
+            border-bottom: 1px solid #333;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            font-size: 16px;
+        }
+
+        .current-time {
+            color: #f59e0b;
+            font-weight: 500;
+        }
+
+        .progress {
+            color: #888;
+        }
+
+        .settings-btn {
+            background: #2a2a2a;
+            border: none;
+            color: #f59e0b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .settings-btn:hover {
+            background: #333;
+        }
+
+        .left-column {
+            flex: 0 0 60%;
+            padding: 100px 40px 40px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .right-column {
+            flex: 0 0 40%;
+            background: #222;
+            padding: 100px 30px 40px;
+            overflow-y: auto;
+            border-left: 1px solid #333;
+        }
+
+        .step {
+            margin-bottom: 40px;
+            padding: 24px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #242424;
+        }
+
+        .step.completed {
+            opacity: 0.4;
+            background: #1f1f1f;
+        }
+
+        .step.current {
+            background: #2a2a2a;
+            box-shadow: 0 0 0 2px #f59e0b;
+            opacity: 1;
+            transform: scale(1.02);
+        }
+
+        .step.upcoming {
+            opacity: 0.6;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .step-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #f59e0b;
+            min-width: 50px;
+        }
+
+        .step-time {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f59e0b;
+        }
+
+        .step-content {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #fff;
+            margin-left: 66px;
+        }
+
+        .step.completed .step-content {
+            color: #888;
+        }
+
+        .step.upcoming .step-content {
+            color: #ccc;
+        }
+
+        .step-note {
+            margin-top: 12px;
+            margin-left: 66px;
+            padding: 12px;
+            background: #333;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #f59e0b;
+            font-style: italic;
+        }
+
+        .countdown-badge {
+            display: inline-block;
+            margin-left: 66px;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #f59e0b;
+            color: #1a1a1a;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .timeline-list {
+            list-style: none;
+        }
+
+        .timeline-item {
+            padding: 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: #2a2a2a;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item.active {
+            background: #333;
+            box-shadow: 0 0 0 2px #f59e0b;
+        }
+
+        .timeline-item.completed {
+            opacity: 0.4;
+        }
+
+        .timeline-time {
+            color: #f59e0b;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .timeline-desc {
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .timeline-item.completed .timeline-desc {
+            color: #888;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #f59e0b;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .modal {
+            background: #2a2a2a;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #f59e0b;
+        }
+
+        .modal-step {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #1a1a1a;
+            border-radius: 8px;
+        }
+
+        .modal-step-title {
+            color: #f59e0b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .modal textarea {
+            width: 100%;
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-btn-primary {
+            background: #f59e0b;
+            color: #1a1a1a;
+        }
+
+        .modal-btn-secondary {
+            background: #444;
+            color: #fff;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const STEPS = [
+            { time: '07:30', description: 'Sous vide to temp (65°C)' },
+            { time: '08:00', description: 'Turkey into sous vide' },
+            { time: '11:00', description: 'Light kamado (target 250°C)' },
+            { time: '11:20', description: 'Small oven on (preheat with Yorkshire tray + beef dripping)' },
+            { time: '11:30', description: 'Start gravy (chicken + mire poix in stock)' },
+            { time: '11:45', description: 'Main oven on 200°C & heat oil for parsnips' },
+            { time: '12:00', description: 'Roast potatoes & parsnips in (parsnips tossed in oil first)' },
+            { time: '12:05', description: 'Red cabbage in slow cooker' },
+            { time: '12:10', description: 'Turkey onto kamado (out of sous vide, onto 250°C kamado to crisp)' },
+            { time: '12:15', description: 'Chop sprouts (cut in half)' },
+            { time: '12:20', description: 'Stuffing in oven' },
+            { time: '12:25', description: 'Start mashing potatoes (drain, mash with butter and cream)' },
+            { time: '12:30', description: 'Strain gravy, add roux + reduction (let simmer after incorporating)' },
+            { time: '12:40', description: 'Yorkshire puddings in (25 mins at 220°C)' },
+            { time: '12:45', description: 'Pigs in blankets to air fryer, sprouts in frying pan' },
+            { time: '12:50', description: 'Turkey off kamado (should be nicely crisped)' },
+            { time: '13:00', description: 'Serve buffet style' },
+            { time: '13:05', description: 'Yorkshires out' }
+        ];
+
+        function App() {
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [completedSteps, setCompletedSteps] = useState([]);
+            const [showSettings, setShowSettings] = useState(false);
+            const [notes, setNotes] = useState({});
+            const [countdown, setCountdown] = useState(null);
+            const currentStepRef = useRef(null);
+
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setCurrentTime(new Date());
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            useEffect(() => {
+                if (currentStepRef.current) {
+                    currentStepRef.current.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            }, [completedSteps]);
+
+            useEffect(() => {
+                const nextStep = STEPS.find((_, idx) => !completedSteps.includes(idx));
+                if (nextStep) {
+                    const [hours, minutes] = nextStep.time.split(':').map(Number);
+                    const stepTime = new Date(currentTime);
+                    stepTime.setHours(hours, minutes, 0, 0);
+
+                    const diff = stepTime - currentTime;
+                    if (diff > 0) {
+                        const hours = Math.floor(diff / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                        if (hours > 0) {
+                            setCountdown(`${hours}h ${minutes}m`);
+                        } else if (minutes > 0) {
+                            setCountdown(`${minutes}m ${seconds}s`);
+                        } else {
+                            setCountdown(`${seconds}s`);
+                        }
+                    } else {
+                        setCountdown('Now!');
+                    }
+                }
+            }, [currentTime, completedSteps]);
+
+            const getCurrentStepIndex = () => {
+                return STEPS.findIndex((_, idx) => !completedSteps.includes(idx));
+            };
+
+            const handleStepClick = (index) => {
+                if (completedSteps.includes(index)) {
+                    setCompletedSteps(completedSteps.filter(i => i !== index));
+                } else {
+                    setCompletedSteps([...completedSteps, index]);
+                }
+            };
+
+            const getStepClass = (index) => {
+                if (completedSteps.includes(index)) return 'completed';
+                if (index === getCurrentStepIndex()) return 'current';
+                return 'upcoming';
+            };
+
+            const formatTime = (date) => {
+                return date.toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            };
+
+            const handleSaveNotes = (tempNotes) => {
+                setNotes(tempNotes);
+                setShowSettings(false);
+            };
+
+            const highlightTimes = (text) => {
+                const timePatterns = /(\d+\s*°C|\d+\s*mins?|\d+\s*seconds?|25\s*mins|target\s+\d+°C)/gi;
+                const parts = text.split(timePatterns);
+
+                return parts.map((part, i) => {
+                    if (part.match(timePatterns)) {
+                        return <span key={i} style={{ color: '#f59e0b', fontWeight: 600 }}>{part}</span>;
+                    }
+                    return part;
+                });
+            };
+
+            return (
+                <>
+                    <div className="header">
+                        <h1>Christmas Dinner Timeline</h1>
+                        <div className="header-info">
+                            <div className="current-time">{formatTime(currentTime)}</div>
+                            <div className="progress">
+                                {completedSteps.length} of {STEPS.length} completed
+                            </div>
+                            <button className="settings-btn" onClick={() => setShowSettings(true)}>
+                                Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="container">
+                        <div className="left-column">
+                            {STEPS.map((step, index) => (
+                                <div
+                                    key={index}
+                                    ref={index === getCurrentStepIndex() ? currentStepRef : null}
+                                    className={`step ${getStepClass(index)}`}
+                                    onClick={() => handleStepClick(index)}
+                                >
+                                    <div className="step-header">
+                                        <div className="step-number">{index + 1}</div>
+                                        <div className="step-time">{step.time}</div>
+                                    </div>
+                                    <div className="step-content">
+                                        {highlightTimes(step.description)}
+                                    </div>
+                                    {notes[index] && (
+                                        <div className="step-note">{notes[index]}</div>
+                                    )}
+                                    {index === getCurrentStepIndex() && countdown && (
+                                        <div className="countdown-badge">
+                                            {countdown}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="right-column">
+                            <div className="section-title">Timeline</div>
+                            <ul className="timeline-list">
+                                {STEPS.map((step, index) => (
+                                    <li
+                                        key={index}
+                                        className={`timeline-item ${
+                                            completedSteps.includes(index) ? 'completed' : ''
+                                        } ${index === getCurrentStepIndex() ? 'active' : ''}`}
+                                    >
+                                        <div className="timeline-time">{step.time}</div>
+                                        <div className="timeline-desc">{step.description}</div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                    {showSettings && (
+                        <SettingsModal
+                            steps={STEPS}
+                            currentNotes={notes}
+                            onClose={() => setShowSettings(false)}
+                            onSave={handleSaveNotes}
+                        />
+                    )}
+                </>
+            );
+        }
+
+        function SettingsModal({ steps, currentNotes, onClose, onSave }) {
+            const [tempNotes, setTempNotes] = useState({ ...currentNotes });
+
+            const handleNoteChange = (index, value) => {
+                setTempNotes({
+                    ...tempNotes,
+                    [index]: value
+                });
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h2>Step Notes</h2>
+                        {steps.map((step, index) => (
+                            <div key={index} className="modal-step">
+                                <div className="modal-step-title">
+                                    {step.time} - {step.description}
+                                </div>
+                                <textarea
+                                    value={tempNotes[index] || ''}
+                                    onChange={(e) => handleNoteChange(index, e.target.value)}
+                                    placeholder="Add a note for this step..."
+                                />
+                            </div>
+                        ))}
+                        <div className="modal-buttons">
+                            <button
+                                className="modal-btn modal-btn-secondary"
+                                onClick={onClose}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="modal-btn modal-btn-primary"
+                                onClick={() => onSave(tempNotes)}
+                            >
+                                Save Notes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
