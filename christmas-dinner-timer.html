@@ -546,6 +546,7 @@
             };
 
             const handleSaveSettings = (tempNotes, tempLocations) => {
+                console.log('Saving settings:', { notes: tempNotes, locations: tempLocations });
                 setNotes(tempNotes);
                 setLocations(tempLocations);
                 setShowSettings(false);
