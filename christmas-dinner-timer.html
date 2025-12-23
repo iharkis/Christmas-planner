@@ -368,14 +368,14 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const COOKING_LOCATIONS = ['Main oven', 'Top oven', 'Air fryer', 'Slow cooker', 'Hob', 'Microwave', 'Kamado'];
+        const COOKING_LOCATIONS = ['Main oven', 'Top oven', 'Air fryer', 'Slow cooker', 'Hob', 'Microwave', 'Kamado', 'Sous vide'];
 
         const STEPS = [
             { time: '07:30', description: 'Sous vide to temp (65°C)' },
             { time: '08:00', description: 'Turkey into sous vide' },
             { time: '11:00', description: 'Light kamado (target 250°C)' },
             { time: '11:15', description: 'Christmas pudding in steamer (3 hours)' },
-            { time: '11:20', description: 'Small oven on (preheat with Yorkshire tray + beef dripping)' },
+            { time: '11:20', description: 'Top oven on (preheat with Yorkshire tray + beef dripping)' },
             { time: '11:30', description: 'Start gravy (chicken + mire poix in stock)' },
             { time: '11:45', description: 'Main oven on 200°C & heat oil for parsnips' },
             { time: '12:00', description: 'Roast potatoes & parsnips in (parsnips tossed in oil first)' },
@@ -385,7 +385,7 @@
             { time: '12:20', description: 'Stuffing in oven' },
             { time: '12:25', description: 'Start mashing potatoes (drain, mash with butter and cream)' },
             { time: '12:30', description: 'Strain gravy, add roux + reduction (let simmer after incorporating)' },
-            { time: '12:40', description: 'Yorkshire puddings in (25 mins at 220°C)' },
+            { time: '12:40', description: 'Yorkshire puddings in top oven (25 mins at 220°C)' },
             { time: '12:45', description: 'Pigs in blankets to air fryer, sprouts in frying pan' },
             { time: '12:50', description: 'Turkey off kamado (should be nicely crisped)' },
             { time: '12:55', description: 'Steam tenderstem broccoli' },
@@ -395,10 +395,19 @@
 
         function App() {
             const [currentTime, setCurrentTime] = useState(new Date());
-            const [completedSteps, setCompletedSteps] = useState([]);
+            const [completedSteps, setCompletedSteps] = useState(() => {
+                const saved = localStorage.getItem('christmasTimerCompleted');
+                return saved ? JSON.parse(saved) : [];
+            });
             const [showSettings, setShowSettings] = useState(false);
-            const [notes, setNotes] = useState({});
-            const [locations, setLocations] = useState({});
+            const [notes, setNotes] = useState(() => {
+                const saved = localStorage.getItem('christmasTimerNotes');
+                return saved ? JSON.parse(saved) : {};
+            });
+            const [locations, setLocations] = useState(() => {
+                const saved = localStorage.getItem('christmasTimerLocations');
+                return saved ? JSON.parse(saved) : {};
+            });
             const [countdown, setCountdown] = useState(null);
             const currentStepRef = useRef(null);
 
@@ -408,6 +417,18 @@
                 }, 1000);
                 return () => clearInterval(timer);
             }, []);
+
+            useEffect(() => {
+                localStorage.setItem('christmasTimerNotes', JSON.stringify(notes));
+            }, [notes]);
+
+            useEffect(() => {
+                localStorage.setItem('christmasTimerLocations', JSON.stringify(locations));
+            }, [locations]);
+
+            useEffect(() => {
+                localStorage.setItem('christmasTimerCompleted', JSON.stringify(completedSteps));
+            }, [completedSteps]);
 
             useEffect(() => {
                 if (currentStepRef.current) {
