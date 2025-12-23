@@ -7,6 +7,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -318,6 +319,41 @@
             margin-top: 8px;
         }
 
+        .qr-modal {
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .qr-canvas {
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .qr-instructions {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .sync-btn {
+            background: #2a2a2a;
+            border: 1px solid #f59e0b;
+            color: #f59e0b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 12px;
+        }
+
+        .sync-btn:hover {
+            background: #333;
+        }
+
         .modal-buttons {
             display: flex;
             gap: 12px;
@@ -400,6 +436,7 @@
                 return saved ? JSON.parse(saved) : [];
             });
             const [showSettings, setShowSettings] = useState(false);
+            const [showQR, setShowQR] = useState(false);
             const [notes, setNotes] = useState(() => {
                 const saved = localStorage.getItem('christmasTimerNotes');
                 return saved ? JSON.parse(saved) : {};
@@ -410,6 +447,24 @@
             });
             const [countdown, setCountdown] = useState(null);
             const currentStepRef = useRef(null);
+
+            // Load state from URL hash on mount
+            useEffect(() => {
+                try {
+                    const hash = window.location.hash.slice(1);
+                    if (hash) {
+                        const decoded = decodeURIComponent(hash);
+                        const state = JSON.parse(atob(decoded));
+                        if (state.notes) setNotes(state.notes);
+                        if (state.locations) setLocations(state.locations);
+                        if (state.completed) setCompletedSteps(state.completed);
+                        // Clear hash after loading
+                        window.history.replaceState(null, '', window.location.pathname);
+                    }
+                } catch (e) {
+                    console.error('Failed to load state from URL:', e);
+                }
+            }, []);
 
             useEffect(() => {
                 const timer = setInterval(() => {
@@ -509,6 +564,17 @@
                 });
             };
 
+            const generateShareableURL = () => {
+                const state = {
+                    notes,
+                    locations,
+                    completed: completedSteps
+                };
+                const encoded = btoa(JSON.stringify(state));
+                const baseUrl = window.location.origin + window.location.pathname;
+                return `${baseUrl}#${encodeURIComponent(encoded)}`;
+            };
+
             return (
                 <>
                     <div className="header">
@@ -518,6 +584,9 @@
                             <div className="progress">
                                 {completedSteps.length} of {STEPS.length} completed
                             </div>
+                            <button className="sync-btn" onClick={() => setShowQR(true)}>
+                                Sync QR
+                            </button>
                             <button className="settings-btn" onClick={() => setShowSettings(true)}>
                                 Settings
                             </button>
@@ -590,6 +659,13 @@
                             onSave={handleSaveSettings}
                         />
                     )}
+
+                    {showQR && (
+                        <QRModal
+                            url={generateShareableURL()}
+                            onClose={() => setShowQR(false)}
+                        />
+                    )}
                 </>
             );
         }
@@ -653,6 +729,47 @@
                                 onClick={() => onSave(tempNotes, tempLocations)}
                             >
                                 Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function QRModal({ url, onClose }) {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                if (canvasRef.current && window.QRCode) {
+                    window.QRCode.toCanvas(canvasRef.current, url, {
+                        width: 300,
+                        margin: 2,
+                        color: {
+                            dark: '#1a1a1a',
+                            light: '#ffffff'
+                        }
+                    }, (error) => {
+                        if (error) console.error('QR code generation error:', error);
+                    });
+                }
+            }, [url]);
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal qr-modal" onClick={(e) => e.stopPropagation()}>
+                        <h2>Sync to Another Device</h2>
+                        <div className="qr-instructions">
+                            Scan this QR code with your iPad camera or QR scanner app. It will open this page with all your settings, locations, and completed steps loaded.
+                        </div>
+                        <div className="qr-canvas">
+                            <canvas ref={canvasRef}></canvas>
+                        </div>
+                        <div className="modal-buttons">
+                            <button
+                                className="modal-btn modal-btn-primary"
+                                onClick={onClose}
+                            >
+                                Close
                             </button>
                         </div>
                     </div>
